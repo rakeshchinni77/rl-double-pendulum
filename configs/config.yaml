@@ -1,0 +1,24 @@
+training:
+  timesteps: 500000
+  reward_type: shaped
+  save_path: models/ppo_model
+  log_dir: logs
+  seed: 42
+
+ppo:
+  learning_rate: 0.0003
+  n_steps: 1024
+  batch_size: 64
+  gamma: 0.99
+  device: auto
+  verbose: 1
+
+evaluation:
+  reward_type: shaped
+  episodes: 3
+  max_steps: 1000
+  deterministic: true
+  render: false
+  save_gif: true
+  gif_path: media/agent_final.gif
+  fps: 30
