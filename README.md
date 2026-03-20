@@ -1,103 +1,253 @@
-# RL Double Inverted Pendulum
+# RL Double Inverted Pendulum (PPO + Pymunk)
 
-This project implements a custom 2D double inverted pendulum control task using pymunk physics, pygame rendering, and PPO from Stable-Baselines3.
+A complete reinforcement learning system that trains a PPO agent to balance a **double inverted pendulum** using a custom physics environment built with `pymunk`.
+
+---
+
+## Project Overview
+
+This project demonstrates:
+
+- Custom Gymnasium environment design
+- Physics-based simulation using `pymunk`
+- Reinforcement learning with PPO (Stable-Baselines3)
+- Reward engineering (baseline vs shaped)
+- Training, evaluation, logging, visualization, and analysis
+- Dockerized reproducible pipeline
+
+---
+
+## Results
+
+### Initial (Untrained Agent)
+![Initial Agent](media/agent_initial.gif)
+
+### Final (Trained PPO Agent)
+![Final Agent](media/agent_final.gif)
+
+---
+
+## Performance
+
+- **Mean Reward:** ~241 🔥  
+- **Stable Control:** Yes  
+- **Learning Efficiency:** Improved with reward shaping  
+
+---
+
+## Reward Comparison
+
+![Reward Comparison](reward_comparison.png)
+
+---
+
+## Environment Design
+
+The system simulates a **double inverted pendulum on a cart**.
+
+### Physics Setup
+
+- Engine: `pymunk.Space`
+- Gravity + damping applied
+- Stable timestep (60 FPS)
+
+### Components
+
+- Cart body (horizontal motion)
+- Two pole bodies (linked vertically)
+
+### Constraints
+
+- `GrooveJoint` → restricts cart to horizontal track  
+- `PivotJoint` → cart ↔ pole1  
+- `PivotJoint` → pole1 ↔ pole2  
+
+---
+
+## Observation Space (6D)
+
+```python
+[cart_x, cart_vx, pole1_angle, pole1_ω, pole2_angle, pole2_ω]
+```
+
+---
+
+## Action Space
+
+```python
+Continuous force ∈ [-1, 1]
+```
+
+---
+
+## Reward Function Design
+
+### 🔹 Baseline Reward
+
+```python
+cos(θ1) + cos(θ2)
+```
+
+- Encourages upright poles only  
+- Sparse feedback  
+
+---
+
+### Shaped Reward
+
+```python
+Upright Bonus = cos(θ1) + cos(θ2)
+Center Penalty = -0.1 * |cart_x|
+Velocity Penalty = -0.01 * (|ω1| + |ω2|)
+Action Penalty = -0.001 * action²
+```
+
+### Rationale
+
+- Improves learning speed  
+- Encourages stability  
+- Reduces oscillations  
+- Produces smoother control  
+
+---
 
 ## Project Structure
 
-- configs/config.yaml: Centralized defaults for training, PPO hyperparameters, and evaluation.
-- src/env/environment.py: Custom DoublePendulumEnv implementation.
-- src/agents/ppo_agent.py: PPO wrapper.
-- src/training/train_pipeline.py: End-to-end training pipeline.
-- src/evaluation/evaluate_pipeline.py: End-to-end evaluation pipeline.
-- src/utils/logger.py: CSV logging utility.
-- src/utils/plotting.py: Reward curve plotting utility.
-- src/utils/gif_generator.py: GIF generation utility.
-- train.py: CLI training entrypoint.
-- evaluate.py: CLI evaluation entrypoint.
+```
+rl-double-pendulum/
+│
+├── configs/config.yaml
+│
+├── src/
+│   ├── env/environment.py
+│   ├── agents/ppo_agent.py
+│   ├── training/train_pipeline.py
+│   ├── evaluation/evaluate_pipeline.py
+│   │
+│   └── utils/
+│       ├── logger.py
+│       ├── plotting.py
+│       └── gif_generator.py
+│
+├── train.py
+├── evaluate.py
+│
+├── logs/
+├── models/
+├── media/
+├── notebooks/analysis.ipynb
+```
 
-### Environment Design
+---
+## How to Run
 
-The environment is a cart on a horizontal track with two linked poles.
+### 1. Setup (Local)
 
-- Physics engine: pymunk.Space with gravity and damping.
-- Bodies: one cart body and two pole bodies.
-- Constraints:
-  - GrooveJoint constrains cart horizontal motion.
-  - PivotJoint connects cart to pole 1.
-  - PivotJoint connects pole 1 to pole 2.
-- Observation vector shape: (6,)
-  - cart_x
-  - cart_vx
-  - pole1_angle
-  - pole1_angular_velocity
-  - pole2_angle
-  - pole2_angular_velocity
-- Action vector shape: (1,), continuous in [-1, 1], scaled to force.
-- Episode ends when:
-  - cart exits track bounds
-  - either pole angle crosses failure threshold
-  - max step limit is reached
+```bash
+pip install -r requirements.txt
+```
 
-### Reward Function Design
+---
 
-Two reward modes are implemented and selectable via reward_type.
+### 2. Train
 
-1. Baseline reward
+```bash
+python train.py --timesteps 500000 --reward_type shaped --save_path models/ppo_shaped
+```
 
-- Formula: cos(theta1) + cos(theta2)
-- Purpose: reward upright poles only.
+---
 
-2. Shaped reward
+### 3. Evaluate
 
-- Upright bonus: cos(theta1) + cos(theta2)
-- Center penalty: -0.1 \* abs(cart_x)
-- Velocity penalty: -0.01 \* (abs(omega1) + abs(omega2))
-- Action penalty: -0.001 \* action^2
+```bash
+python evaluate.py \
+  --model_path models/ppo_shaped.zip \
+  --reward_type shaped \
+  --episodes 1 \
+  --max_steps 300 \
+  --gif_path media/agent_final.gif
+```
 
-Rationale:
+---
 
-- Baseline captures the main objective but can learn slowly.
-- Shaped adds dense feedback for stabilization and smoother control.
-- This typically improves sample efficiency and policy quality.
+### 4. Plot Results
 
-### How to Run
+```bash
+python src/utils/plotting.py \
+  --baseline_csv logs/training_metrics_baseline.csv \
+  --shaped_csv logs/training_metrics_shaped.csv \
+  --output_path reward_comparison.png
+```
 
-1. Local venv setup
+---
 
-- Create and activate virtual environment.
-- Install dependencies:
-  - pip install -r requirements.txt
+### 5. Run Tests
 
-2. Train
+```bash
+python tests/test_env.py
+```
 
-- Example shaped run:
-  - python train.py --timesteps 500000 --reward_type shaped --save_path models/ppo_shaped
-- Example baseline run:
-  - python train.py --timesteps 500000 --reward_type baseline --save_path models/ppo_baseline
+---
 
-3. Evaluate
+## Docker Support
 
-- python evaluate.py --model_path models/ppo_shaped.zip --reward_type shaped --episodes 1 --max_steps 300 --gif_path media/agent_final.gif
+### Build
 
-4. Generate reward comparison plot
+```bash
+docker compose build
+```
 
-- python src/utils/plotting.py --baseline_csv logs/training_metrics_baseline.csv --shaped_csv logs/training_metrics_shaped.csv --output_path reward_comparison.png
+### Train
 
-5. Run tests
+```bash
+docker compose run --rm train \
+  python train.py --timesteps 1000 --reward_type shaped
+```
 
-- python tests/test_env.py
+### Evaluate (Headless)
 
-6. Docker
+```bash
+docker compose run --rm -e SDL_VIDEODRIVER=dummy evaluate \
+  python evaluate.py --model_path models/ppo_shaped_300k.zip
+```
 
-- Build:
-  - docker compose build
-- Train service:
-  - docker compose run --rm train python train.py --timesteps 1000 --reward_type shaped --save_path models/docker_train_smoke --log_dir logs
-- Evaluate service:
-  - docker compose run --rm evaluate python evaluate.py --model_path models/ppo_shaped_300k.zip --reward_type shaped --episodes 1 --max_steps 64 --gif_path media/agent_final.gif
+---
 
 ## Outputs
 
-- Logs: logs/training_metrics_baseline.csv and logs/training_metrics_shaped.csv
-- Plot: reward_comparison.png
-- GIFs: media/agent_initial.gif and media/agent_final.gif
+### Logs
+
+- `logs/training_metrics_baseline.csv`
+- `logs/training_metrics_shaped.csv`
+
+### Visualizations
+
+- `reward_comparison.png`
+- `media/agent_initial.gif`
+- `media/agent_final.gif`
+
+---
+
+## Analysis
+
+See detailed training insights in:
+
+```
+notebooks/analysis.ipynb
+```
+
+### Includes:
+
+- Learning curves  
+- Reward distributions  
+- Stability analysis  
+
+---
+
+## Author
+
+**Chinni Rakesh**  
+B.Tech CSE (AIML)  
+Reinforcement Learning Project
+
+---
