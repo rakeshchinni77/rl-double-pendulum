@@ -1,0 +1,57 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+/venv/
+/env/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+
+# Generated runtime artifacts (do not commit)
+logs/**
+models/**
+
+# Keep directory placeholders if added later
+!logs/.gitkeep
+!models/.gitkeep
+
+# Keep only required media deliverables, ignore other generated media
+media/**
+!media/agent_initial.gif
+!media/agent_final.gif
+!media/.gitkeep
+
+# Ignore malformed artifacts from escaped path mistakes
+mediaagent_final.gif
+modelsppo_*.zip
+
