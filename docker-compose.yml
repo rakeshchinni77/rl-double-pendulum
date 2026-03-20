@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    command: python -c "print('Container ready. Use train/evaluate services.')"
+
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - TIMESTEPS=${TIMESTEPS:-500000}
+      - REWARD_TYPE=${REWARD_TYPE:-shaped}
+      - MODEL_PATH=${MODEL_PATH:-models/ppo_model}
+      - LOG_DIR=${LOG_DIR:-logs}
+    command: python train.py --timesteps ${TIMESTEPS:-500000} --reward_type ${REWARD_TYPE:-shaped} --save_path ${MODEL_PATH:-models/ppo_model} --log_dir ${LOG_DIR:-logs}
+
+  evaluate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - DISPLAY=${DISPLAY}
+      - SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-dummy}
+      - MODEL_PATH=${MODEL_PATH:-models/ppo_model.zip}
+    command: python evaluate.py --model_path ${MODEL_PATH:-models/ppo_model.zip} --reward_type ${REWARD_TYPE:-shaped} --episodes 1 --max_steps 300 --gif_path media/agent_final.gif
