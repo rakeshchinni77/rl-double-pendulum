@@ -41,6 +41,21 @@ This project demonstrates:
 
 ---
 
+### System Architecture
+
+The project follows a modular reinforcement learning pipeline:
+
+- Environment (DoublePendulumEnv): Handles physics simulation using pymunk and provides observations, rewards, and transitions.
+- Agent (PPO): Learns a policy using Stable-Baselines3.
+- Training Pipeline: Connects the agent and environment, performs learning, and logs metrics.
+- Evaluation Pipeline: Loads trained models, runs inference, and generates GIF visualizations.
+- Utilities: Handle logging, plotting, and GIF generation.
+
+Workflow:
+
+Environment → PPO Agent → Training → Logging → Evaluation → Visualization
+
+---
 ## Environment Design
 
 The system simulates a **double inverted pendulum on a cart**.
